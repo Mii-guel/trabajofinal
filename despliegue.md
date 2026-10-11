@@ -16,7 +16,7 @@ Dos opciones. **Opción A** es la más rápida para la evaluación; **Opción B*
    ```
 4. **Obtener código y levantar:**
    ```bash
-   git clone https://github.com/TU_USUARIO/TU_REPO.git && cd TU_REPO
+   git clone https://github.com/Mii-guel/trabajofinal.git && cd TU_REPO
    docker compose up --build -d
    docker compose up -d --no-build --no-recreate --scale cuentas-service=2 --scale pagos-service=2   # escalar
    ```
