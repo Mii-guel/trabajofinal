@@ -1,0 +1,128 @@
+EVIDENCIA DE EJECUCION - Banco XYZ - Sat Oct 10 22:41:49 HSP 2026
+
+=================== 1. Contenedores ===================
+NAME                                      SERVICE                  STATUS
+api-gateway                               api-gateway              Up 8 minutes
+auth-server                               auth-server              Up 20 minutes
+config-server                             config-server            Up 20 minutes (healthy)
+eureka-server                             eureka-server            Up 20 minutes (healthy)
+kafka                                     kafka                    Up 20 minutes
+postgres                                  postgres                 Up 20 minutes (healthy)
+proyecto-banco-batch-service-1            batch-service            Up 20 minutes
+proyecto-banco-bff-atm-1                  bff-atm                  Up 20 minutes
+proyecto-banco-bff-movil-1                bff-movil                Up 20 minutes
+proyecto-banco-bff-web-1                  bff-web                  Up 20 minutes
+proyecto-banco-clientes-service-1         clientes-service         Up 20 minutes
+proyecto-banco-cuentas-service-1          cuentas-service          Up 20 minutes
+proyecto-banco-notificaciones-service-1   notificaciones-service   Up 20 minutes
+proyecto-banco-pagos-service-1            pagos-service            Up 20 minutes
+
+=================== 2. Servicios registrados en Eureka ===================
+      1 "app":"API-GATEWAY"
+      1 "app":"AUTH-SERVER"
+      1 "app":"BATCH-SERVICE"
+      1 "app":"BFF-ATM"
+      1 "app":"BFF-MOVIL"
+      1 "app":"BFF-WEB"
+      1 "app":"CLIENTES-SERVICE"
+      1 "app":"CUENTAS-SERVICE"
+      1 "app":"NOTIFICACIONES-SERVICE"
+      1 "app":"PAGOS-SERVICE"
+
+=================== 3. OAuth2 por HTTPS: tokens emitidos por canal (primeros 40 caracteres) ===================
+WEB: eyJraWQiOiIwMDNlNGE2Ny1kZWVhLTRhYjYtYTJl...
+MOV: eyJraWQiOiIwMDNlNGE2Ny1kZWVhLTRhYjYtYTJl...
+ATM: eyJraWQiOiIwMDNlNGE2Ny1kZWVhLTRhYjYtYTJl...
+ADM: eyJraWQiOiIwMDNlNGE2Ny1kZWVhLTRhYjYtYTJl...
+
+=================== 4. Sin token -> 401 ===================
+HTTP/1.1 401 Unauthorized
+WWW-Authenticate: Bearer
+X-Content-Type-Options: nosniff
+
+=================== 5. BFF WEB (respuesta completa) ===================
+{"canal":"web","cliente":{"id":1,"rut":"11.111.111-1","nombre":"Ana Perez","email":"ana@mail.cl","telefono":"+56911111111","tipo":"PERSONA"},"cuentas":[{"id":1,"numero":"1001","clienteId":1,"tipo":"CORRIENTE","estado":"ABIERTA","saldo":500000.0}],"movimientos":[],"advertencias":[]}
+
+=================== 6. BFF MOVIL (respuesta liviana) ===================
+{"nombre":"Ana Perez","cuentas":[{"numero":"1001","saldo":500000.0}]}
+
+=================== 7. BFF ATM (saldo) ===================
+{"saldo":500000.0,"cuenta":"1001"}
+
+=================== 8. Autorizacion por canal: token MOVIL en BFF WEB -> 403 ===================
+HTTP/1.1 403 Forbidden
+
+=================== 9. Transferencia por WEB (50000 de 1001 a 1002) -> 201 COMPLETADA ===================
+{"id":2,"tipo":"TRANSFERENCIA","origen":"1001","destino":"1002","canal":"WEB","estado":"COMPLETADA","referencia":null,"monto":50000,"fecha":"2026-10-11T01:42:29.445445292Z"}
+
+=================== 10. ATM: retiro 100000 -> 201 | retiro 15000 (no multiplo) -> 400 | retiro 999999 (sobre limite) -> 400 ===================
+{"monto":100000,"id":3,"estado":"COMPLETADA"} [HTTP 201]
+{"timestamp":"2026-10-11T01:42:32.714+00:00","status":400,"error":"Bad Request","path":"/atm/retiro"} [HTTP 400]
+{"timestamp":"2026-10-11T01:42:33.363+00:00","status":400,"error":"Bad Request","path":"/atm/retiro"} [HTTP 400]
+
+=================== 11. Saldo insuficiente (cuenta 1002 -> 99999999) -> 422 ===================
+<html><body><h1>Whitelabel Error Page</h1><p>This application has no explicit mapping for /error, so you are seeing this as a fallback.</p><div id='created'>Sun Oct 11 01:42:34 UTC 2026</div><div>There was an unexpected error (type=Unprocessable Entity, status=422).</div></body></html> [HTTP 422]
+
+=================== 12. Monto alto (1.500.000 de 1003 a 1001) -> genera ALERTA DE SEGURIDAD en Kafka ===================
+{"id":5,"tipo":"TRANSFERENCIA","origen":"1003","destino":"1001","canal":"WEB","estado":"COMPLETADA","referencia":null,"monto":1500000,"fecha":"2026-10-11T01:42:36.154734334Z"}
+
+=================== 13. Kafka: eventos consumidos por notificaciones-service ===================
+notificaciones-service-1  | 2026-10-11T01:23:14.670Z  INFO 1 --- [notificaciones-service] [           main] o.s.c.n.e.s.EurekaServiceRegistry        : Registering application NOTIFICACIONES-SERVICE with eureka with status UP
+notificaciones-service-1  | 2026-10-11T01:23:14.739Z  INFO 1 --- [notificaciones-service] [foReplicator-%d] com.netflix.discovery.DiscoveryClient    : DiscoveryClient_NOTIFICACIONES-SERVICE/notificaciones-service:60535a59562e9e932d3ba82dd9e70b96: registering service...
+notificaciones-service-1  | 2026-10-11T01:23:15.614Z  INFO 1 --- [notificaciones-service] [foReplicator-%d] com.netflix.discovery.DiscoveryClient    : DiscoveryClient_NOTIFICACIONES-SERVICE/notificaciones-service:60535a59562e9e932d3ba82dd9e70b96 - registration status: 204
+notificaciones-service-1  | 2026-10-11T01:42:35.481Z  INFO 1 --- [notificaciones-service] [ntainer#0-0-C-1] cl.banco.notificaciones.EventoListener   : >>> NOTIFICACION al cliente: {"pagoId":2,"tipo":"TRANSFERENCIA","origen":"1001","destino":"1002","monto":50000,"canal":"WEB","estado":"COMPLETADA","fecha":"2026-10-11T01:42:29.445445292Z"}
+notificaciones-service-1  | 2026-10-11T01:42:35.539Z  INFO 1 --- [notificaciones-service] [ntainer#0-0-C-1] cl.banco.notificaciones.EventoListener   : >>> NOTIFICACION al cliente: {"pagoId":1,"tipo":"TRANSFERENCIA","origen":"1001","destino":"1002","monto":50000,"canal":"WEB","estado":"COMPLETADA","fecha":"2026-10-11T01:42:26.066203845Z"}
+notificaciones-service-1  | 2026-10-11T01:42:36.131Z  INFO 1 --- [notificaciones-service] [ntainer#0-0-C-1] cl.banco.notificaciones.EventoListener   : >>> NOTIFICACION al cliente: {"pagoId":3,"tipo":"RETIRO","origen":"1001","destino":null,"monto":100000,"canal":"ATM","estado":"COMPLETADA","fecha":"2026-10-11T01:42:31.982913710Z"}
+notificaciones-service-1  | 2026-10-11T01:42:36.344Z  INFO 1 --- [notificaciones-service] [ntainer#0-0-C-1] cl.banco.notificaciones.EventoListener   : >>> NOTIFICACION al cliente: {"pagoId":5,"tipo":"TRANSFERENCIA","origen":"1003","destino":"1001","monto":1500000,"canal":"WEB","estado":"COMPLETADA","fecha":"2026-10-11T01:42:36.154734334Z"}
+notificaciones-service-1  | 2026-10-11T01:42:36.425Z  INFO 1 --- [notificaciones-service] [ntainer#1-0-C-1] cl.banco.notificaciones.EventoListener   : >>> ALERTA DE SEGURIDAD al equipo de fraude: {"pagoId":5,"tipo":"TRANSFERENCIA","origen":"1003","destino":"1001","monto":1500000,"canal":"WEB","estado":"COMPLETADA","fecha":"2026-10-11T01:42:36.154734334Z","motivo":"MONTO_ALTO"}
+
+=================== 14. Spring Batch: ejecucion de los 3 jobs (esperado: 20000 escritos, 3 omitidos) ===================
+--- reporteTransaccionesDiarias
+{"executionId":1,"job":"reporteTransaccionesDiarias","estado":"COMPLETED","exit":"COMPLETED","duracionMs":8900,"steps":[{"step":"procesarTransaccionesStep","estado":"COMPLETED","leidos":20000,"escritos":20000,"filtrados":0,"omitidos":3},{"step":"resumenDiarioStep","estado":"COMPLETED","leidos":0,"escritos":0,"filtrados":0,"omitidos":0}]}
+--- calculoInteresesMensuales
+{"executionId":2,"job":"calculoInteresesMensuales","estado":"COMPLETED","exit":"COMPLETED","duracionMs":394,"steps":[{"step":"calcularInteresesStep","estado":"COMPLETED","leidos":200,"escritos":200,"filtrados":0,"omitidos":0}]}
+--- estadosCuentaAnuales
+{"executionId":3,"job":"estadosCuentaAnuales","estado":"COMPLETED","exit":"COMPLETED","duracionMs":519,"steps":[{"step":"generarEstadosStep","estado":"COMPLETED","leidos":200,"escritos":200,"filtrados":0,"omitidos":0}]}
+
+=================== 15. Resultados en base de datos (batch) ===================
+ transacciones | anomalias 
+---------------+-----------
+         20000 |        39
+(1 row)
+
+       motivo       | count 
+--------------------+-------
+ MONTO_NO_POSITIVO  |    13
+ MONTO_SOBRE_UMBRAL |    20
+ TIPO_DESCONOCIDO   |     6
+(3 rows)
+
+   fecha    |     tipo      | cantidad |   total    | anomalias 
+------------+---------------+----------+------------+-----------
+ 2026-10-06 | DEPOSITO      |       22 | 9230467.00 |         0
+ 2026-10-06 | PAGO          |       23 | 9471384.00 |         0
+ 2026-10-06 | RETIRO        |       14 | 7086205.00 |         0
+ 2026-10-06 | TRANSFERENCIA |       13 | 5838443.00 |         0
+ 2026-10-05 | DEPOSITO      |       15 | 7055327.00 |         0
+(5 rows)
+
+ cuenta | periodo |   tipo   | saldo_base | tasa_anual | interes  
+--------+---------+----------+------------+------------+----------
+ 3165   | 2026-10 | PRESTAMO | 8626076.00 |     0.1200 | 86260.76
+ 3048   | 2026-10 | PRESTAMO | 8567485.00 |     0.1200 | 85674.85
+ 3119   | 2026-10 | PRESTAMO | 8529356.00 |     0.1200 | 85293.56
+ 3173   | 2026-10 | PRESTAMO | 8344272.00 |     0.1200 | 83442.72
+ 3196   | 2026-10 | PRESTAMO | 8052392.00 |     0.1200 | 80523.92
+(5 rows)
+
+ cuenta | anio | saldo_actual | total_depositos | total_cargos | intereses | movimientos 
+--------+------+--------------+-----------------+--------------+-----------+-------------
+ 3123   | 2026 |   2760895.00 |     14485985.00 |  35913332.00 |   6902.24 |         126
+ 3097   | 2026 |   6824229.00 |     16880057.00 |  40315226.00 |  68242.29 |         123
+ 3166   | 2026 |   1472633.00 |     19266629.00 |  38545291.00 |      0.00 |         123
+ 3103   | 2026 |   2245773.00 |     16545640.00 |  43354487.00 |      0.00 |         122
+ 3168   | 2026 |   5257974.00 |     12553232.00 |  44032252.00 |  13144.94 |         121
+(5 rows)
+
+
+=================== 16. Escalabilidad horizontal: 3 instancias de cuentas-service y 2 de pagos-service ===================

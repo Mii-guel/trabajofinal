@@ -1,0 +1,4 @@
+server.port: 8090
+security:
+  read: canal.web
+  write: canal.web

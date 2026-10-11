@@ -1,0 +1,16 @@
+spring.cloud.gateway.routes:
+  - id: bff-web
+    uri: lb://bff-web
+    predicates: [Path=/web/**]
+  - id: bff-movil
+    uri: lb://bff-movil
+    predicates: [Path=/movil/**]
+  - id: bff-atm
+    uri: lb://bff-atm
+    predicates: [Path=/atm/**]
+  - id: batch
+    uri: lb://batch-service
+    predicates: [Path=/api/batch/**]
+  - id: auth
+    uri: lb://auth-server
+    predicates: [Path=/oauth2/**]

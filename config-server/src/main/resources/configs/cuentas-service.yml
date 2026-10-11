@@ -1,0 +1,7 @@
+server.port: 8081
+spring:
+  datasource:
+    url: jdbc:postgresql://postgres:5432/cuentas
+    username: banco
+    password: banco
+  jpa.hibernate.ddl-auto: update

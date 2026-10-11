@@ -1,0 +1,18 @@
+server.port: 8095
+security:
+  read: banco.admin
+  write: banco.admin
+batch:
+  data-dir: /data
+  restart:
+    delay-ms: 60000
+    max-restarts: 3
+spring:
+  datasource:
+    url: jdbc:postgresql://postgres:5432/batch
+    username: banco
+    password: banco
+  batch:
+    job.enabled: false
+    jdbc.initialize-schema: always
+  sql.init.mode: always

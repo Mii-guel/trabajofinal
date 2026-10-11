@@ -1,0 +1,7 @@
+spring:
+  application.name: bff-web
+  config.import: "configserver:${CONFIG_URL:http://localhost:8888}"
+  cloud.config.fail-fast: true
+eureka.instance:
+  prefer-ip-address: true
+  instance-id: "${spring.application.name}:${random.value}"

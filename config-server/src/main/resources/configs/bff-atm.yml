@@ -1,0 +1,4 @@
+server.port: 8092
+security:
+  read: canal.atm
+  write: canal.atm

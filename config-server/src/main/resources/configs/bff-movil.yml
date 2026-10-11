@@ -1,0 +1,4 @@
+server.port: 8091
+security:
+  read: canal.movil
+  write: canal.movil
